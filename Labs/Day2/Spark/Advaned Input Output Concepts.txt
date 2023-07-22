@@ -1,0 +1,55 @@
+Advanced I/O Concepts
+We saw previously that we can control the parallelism of files that we write by controlling the partitions prior to writing. We can also control specific data layout by controlling two things:
+bucketing and partitioning (discussed momentarily).
+
+
+Splittable File Types and Compression
+Certain file formats are fundamentally “splittable.” This can improve speed because it makes it possible for Spark to avoid reading an entire file, and access only the parts of the file necessary to satisfy your query. Additionally if you’re using something like Hadoop Distributed File System (HDFS), splitting a file can provide further optimization if that file spans multiple blocks. In conjunction with this is a need to manage compression. Not all compression schemes are splittable. How you store your data is of immense consequence when it comes to making your Spark jobs run smoothly. We recommend Parquet with gzip compression.
+
+Reading Data in Parallel
+Multiple executors cannot read from the same file at the same time necessarily, but they can read different files at the same time. In general, this means that when you read from a folder with multiple files in it, each one of those files will become a partition in your DataFrame and be read in by available executors in parallel (with the remaining queueing up behind the others). 
+
+Writing Data in Parallel
+The number of files or data written is dependent on the number of partitions the DataFrame has at the time you write out the data. By default, one file is written per partition of the data. This means that although we specify a “file,” it’s actually a number of files within a folder, with the name of the specified file, with one file per each partition that is written. 
+
+For example, the following code:
+csvFile.repartition(5).write.format("csv").save("/tmp/multiple.csv")
+
+will end up with five files inside of that folder. As you can see from the list call:
+
+ls /tmp/multiple.csv
+/tmp/multiple.csv/part-00000-767df509-ec97-4740-8e15-4e173d365a8b.csv
+/tmp/multiple.csv/part-00001-767df509-ec97-4740-8e15-4e173d365a8b.csv
+/tmp/multiple.csv/part-00002-767df509-ec97-4740-8e15-4e173d365a8b.csv
+/tmp/multiple.csv/part-00003-767df509-ec97-4740-8e15-4e173d365a8b.csv
+/tmp/multiple.csv/part-00004-767df509-ec97-4740-8e15-4e173d365a8b.csv
+
+Partitioning
+Partitioning is a tool that allows you to control what data is stored (and where) as you write it. When you write a file to a partitioned directory (or table), you basically encode a column as a folder. What this allows you to do is skip lots of data when you go to read it in later, allowing you to read in only the data relevant to your problem instead of having to scan the complete dataset. These are supported for all file-based data sources:
+
+# in Python
+csvFile.limit(10).write.mode("overwrite").partitionBy("DEST_COUNTRY_NAME")\
+.save("/tmp/partitioned-files.parquet")
+
+Upon writing, you get a list of folders in your Parquet “file”:
+ls /tmp/partitioned-files.parquet
+
+...
+DEST_COUNTRY_NAME=Costa Rica/
+DEST_COUNTRY_NAME=Egypt/
+DEST_COUNTRY_NAME=Equatorial Guinea/
+DEST_COUNTRY_NAME=Senegal/
+DEST_COUNTRY_NAME=United States/
+
+
+Each of these will contain Parquet files that contain that data where the previous predicate was true:
+$ ls /tmp/partitioned-files.parquet/DEST_COUNTRY_NAME=Senegal/
+part-00000-tid.....parquet
+
+This is probably the lowest-hanging optimization that you can use when you have a table that readers frequently filter by before manipulating. For instance, date is particularly common for a partition because, downstream, often we want to look at only the previous week’s data (instead of scanning the entire list of records). This can provide massive speedups for readers.
+
+
+Managing File Size
+Managing file sizes is an important factor not so much for writing data but reading it later on. When you’re writing lots of small files, there’s a significant metadata overhead that you incur managing all of those files. Spark especially does not do well with small files, although many file systems (like HDFS) don’t handle lots of small files well, either. You might hear this referred to as the “small file problem.” The opposite is also true: you don’t want files that are too large either, because it becomes inefficient to have to read entire blocks of data when you need only a few rows. Spark 2.2 introduced a new method for controlling file sizes in a more automatic way. We saw previously that the number of output files is a derivative of the number of partitions we had at write time (and the partitioning columns we selected). Now, you can take advantage of another tool in order to limit output file sizes so that you can target an optimum file size. You can use the maxRecordsPerFile option and specify a number of your choosing. This allows you to better control file sizes by controlling the number of records that are written to each file. For example, if you set an option for a writer as df.write.option("maxRecordsPerFile", 5000), Spark will ensure that files will contain at most 5,000 records. 
+
+
