@@ -2,15 +2,17 @@
 
 ## Environment:
 - Windows 11 on Azure with 8 Core/16 GB RAM
+- Python 3.11.4
 
 ## Download Java:
 - https://download.oracle.com/java/20/latest/jdk-20_windows-x64_bin.zip
 
-## Extract Java to C:\jdk-20.0.2
+### Extract Java to C:\jdk-20.0.2
 
 ## Install Python
+- https://www.python.org/ftp/python/3.11.4/python-3.11.4-amd64.exe
 
-## Install pyspark:
+## Open command prompt and Install pyspark:
 ```
 cd c:\
 python -m venv spark_venv
@@ -22,13 +24,13 @@ pip install findspark
 ## Download winutils:
 - https://github.com/steveloughran/winutils/blob/master/hadoop-2.7.1/bin/winutils.exe
 
-## Create Directory for Hadoop
+### Create Directory for Hadoop
 ```
 md c:\hadoop
 md c:\hadoop\bin
 ```
 
-## Copy winutils.exe to c:\hadoop\bin
+### Copy winutils.exe to c:\hadoop\bin
 
 ## Set Env Variables
 - Open Advanced Settings and set below environment variables in User settings
