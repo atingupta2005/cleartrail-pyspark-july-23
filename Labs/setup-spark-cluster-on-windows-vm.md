@@ -54,6 +54,9 @@ ren c:\jdk-20.0.2 c:\jdk
 setx /M HADOOP_HOME "c:\hadoop"
 setx /M SPARK_HOME "c:\spark"
 setx /M JAVA_HOME "c:\jdk"
+setx /M PYSPARK_DRIVER_PYTHON "jupyter"
+setx /M PYSPARK_DRIVER_PYTHON_OPTS "notebook"
+setx /M PYSPARK_PYTHON "python"
 ```
 
 ## Set below path in System Settings using UI
@@ -80,9 +83,38 @@ pyspark --version
 
 ## Start Spark Cluster
 ```
-spark-class org.apache.spark.deploy.master.Master
+spark-class org.apache.spark.deploy.master.Master -h 127.0.0.1
+spark-class org.apache.spark.deploy.worker.Worker spark://127.0.0.1:7077 -h 127.0.0.1
+spark-class org.apache.spark.deploy.worker.Worker spark://127.0.0.1:7077 -h 127.0.0.1
 ```
 
+## Open CMD to run below commands
+
+## Create Python Virtual Environment
 ```
-spark-class org.apache.spark.deploy.worker.Worker vmsparkcluster-1:7077
+md c:\python_working
+cd c:\python_working
+python -m venv venv
+c:\python_working\venv\Scripts\activate
+```
+
+## Instll PySpark libraries in Python
+```
+cd c:\python_working
+c:\python_working\venv\Scripts\activate
+pip install pyspark
+pip install findspark
+```
+
+## Instll Jupyter Notebook in Python
+```
+c:\python_working\venv\Scripts\activate
+pip install jupyter
+```
+
+## Start Jupyter Notebook
+```
+c:\python_working\venv\Scripts\activate
+cd c:\python_working
+jupyter notebook --ip=0.0.0.0
 ```
